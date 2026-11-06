@@ -48,30 +48,48 @@
 
 ## 3. Dự đoán và thực tế
 Thí nghiệm 1b, dự đoán là cong nhưng kết quả là của cả 3 trọng số, lệch là do chưa hiểu đề bài
+
 Thí nghiệm 2a, dự đoán là 5 nhưng kết quả là 8, lý do lệch là do không hiểu về cách phân bố trọng số, dẫn đến phán đoán sai
+
 Thí nghiệm ở 3b, em đoán là Encoder + LogReg nhưng kết quả là cả 2 đều bằng nhau, lệch do bị thiếu kiến thức
 *Chọn 3 dự đoán `predict(...)` lệch nhiều nhất so với kết quả. Mỗi cái: bạn đoán gì, ra gì, vì sao lệch.*
 
 ## 4. Phân tích 50 case khó
 Mô hình 2 BoW + MLP (Deep Learning) là mô hình bị giảm F1 thảm hại nhất, từ 1.000 (trên tập SUB thường) xuống còn chỉ 0.426 (trên 50 case khó)
+
 Nhóm case gây khó khăn lớn nhất cho BoW (LogReg & MLP):
+
 *Né từ khóa*: Đạt tỉ lệ chính xác cực thấp (gần như 0% đối với các từ bị viết cố ý chèn dấu chấm hoặc ký tự lạ).
+
 *Spam giọng tự nhiên*: Do không chứa các từ khóa kích hoạt mạnh (như "free", "win", "call"), mô hình dựa trên Bag-of-Words hoàn toàn bị qua mặt.
+
 **2. Hai case cụ thể và cơ chế gây sai lệch**
+
 **Case 1: Né từ khóa (Obfuscation)**
+
 Nội dung SMS: "F R E E e n t r y into our weekly draw, t x t WIN to 80086"
-Cơ chế lỗi: Phương pháp Bag-of-Words dựa vào việc tách từ bằng khoảng trắng mặc định. Khi kẻ tấn công cố tình viết tách rời từng chữ cái (F R E E, t x t), tokenizer của BoW sẽ nhận diện đây là các từ đơn lẻ có độ dài 1 ký tự (f, r, e, e). Các từ đơn lẻ này không nằm trong từ điển đặc trưng phổ biến (vocab) để đại diện cho Spam, làm mất hoàn toàn từ gốc mang tính phân loại cao như free hay txt.
+
+Cơ chế lỗi: Phương pháp Bag-of-Words dựa vào việc tách từ bằng khoảng trắng mặc định. Khi kẻ tấn công cố tình viết tách rời từng chữ cái (F R E E, t x t), tokenizer của BoW 
+sẽ nhận diện đây là các từ đơn lẻ có độ dài 1 ký tự (f, r, e, e). Các từ đơn lẻ này không nằm trong từ điển đặc trưng phổ biến (vocab) để đại diện cho Spam, làm mất hoàn toàn từ gốc mang tính phân loại cao như free hay txt.
+
 **Case 2: Spam giọng tự nhiên / Đóng vai (Natural Spam / Impersonation)**
+
 Nội dung SMS: "Hi Mum, I dropped my phone in the toilet, this is my new number. Can you send £200 to my friend's account? I'll explain later x"
+
 Cơ chế lỗi: Mô hình BoW chỉ quan sát sự xuất hiện đơn lẻ của các từ trong từ điển mà bỏ qua hoàn toàn ngữ cảnh, trật tự từ và ý đồ ngữ nghĩa. SMS này được viết dưới giọng điệu cực kỳ tự nhiên, mô phỏng cuộc trò chuyện thân mật của người thân gia đình (Mum, phone, friend, explain). Không có bất kỳ từ khóa quảng cáo hay trúng thưởng truyền thống nào. Do đó, các trọng số kéo về phía ham (như my, I, to) lấn át hoàn toàn, khiến mô hình MLP/LogReg tin tưởng đây là tin nhắn bình thường và bỏ lọt cú lừa chuyển tiền này.
+
 *Model nào tụt nhiều nhất, ở nhóm case nào? Nêu 2 case cụ thể và cơ chế khiến model sai.*
 
 ## 5. Thử thách cá nhân
+
 Gọi hàm predict_proba mục đích là tính xác suất dự đoán trên tập test
+
 Tiếp đó khai báo ngưỡng dự đoán là 0.2; nó nghi ngờ nếu quá 20% sẽ lập tức đánh spam, và ngưỡng 0.8 được set cao lên, và nếu vượt qua nó mới bị đánh spam. Các dòng metrics và print đi kèm chỉ đơn giản là dùng để đo lường và in ra các chỉ số hiệu năng tương ứng
+
 *Đề theo SEED của bạn, cách làm, kết quả, giải thích.*
 
 ## 6. Phương án cho sản phẩm thật
+
 Em sẽ đề xuất thiết kế hệ thống với khả năng lọc với 2 tầng. Tầng một dùng BoW kết hợp MLP để quét và chốt kết quả ngay lập tức cho 90 phần trăm lượng tin nhắn có nội dung rõ ràng là rác hoặc cực kỳ an toàn. Tầng hai chỉ kích hoạt mô hình ngôn ngữ lớn để phân tích 10 phần trăm số tin nhắn lọt vào vùng xác suất lưỡng lự từ 0.3 đến 0.7. Cách làm này giúp chặn đứng các thủ đoạn lừa đảo tinh vi mà không tốn kém tài nguyên hay làm chậm toàn bộ hệ thống
 
 *Với yêu cầu p95 < 50 ms/tin cho 10 triệu SMS/ngày: chọn phương án nào, dẫn số liệu nào, chấp nhận đánh đổi gì.*
